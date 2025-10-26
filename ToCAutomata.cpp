@@ -21,7 +21,6 @@ map<pair<stateId, stateId>, regEx> transitions;
 
 set<stateId> allStates = {1, 2, 3, 4, 5};
 
-// Edge cases for epsilon and PHI are largely irrelevant considering Q1 contains no epsilon or PHI transitions - JIC tho
 class RegexHelper
 {
 public:
