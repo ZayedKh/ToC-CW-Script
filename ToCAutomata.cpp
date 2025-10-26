@@ -1,15 +1,31 @@
 #include <iostream>
 #include <regex>
-using namespace std;
+#include <map>
+#include <set>
 
-const string EPSILON = "ε";
-const string PHI = "ɸ";
+using namespace std;
+using stateId = uint32_t;
+using regEx = string;
+
+const regEx EPSILON = "ε";
+const regEx PHI = "ɸ";
+map<pair<stateId, stateId>, regEx> transitions;
+
+/*
+    min(x) = 2, max(x) = 3
+    min(y) = 2, max(y) = 5
+    min(z) = 2, max(z) = 4
+
+    ∴ we know states will always be in range 1 - 5
+*/
+
+set<stateId> allStates = {1, 2, 3, 4, 5};
 
 // Edge cases for epsilon and PHI are largely irrelevant considering Q1 contains no epsilon or PHI transitions - JIC tho
 class RegexHelper
 {
 public:
-    static string concat(string &R1, string &R2)
+    static regEx concat(regEx &R1, regEx &R2)
     {
         // ε º ε = ε
         if (R1 == EPSILON && R2 == EPSILON)
@@ -46,7 +62,7 @@ public:
         return R1 + R2;
     }
 
-    static string star(const string &R)
+    static regEx star(const regEx &R)
     {
         if (R == EPSILON || R == PHI)
         {
@@ -62,7 +78,7 @@ public:
         return "(" + R + ")*";
     }
 
-    static string unionOp(const string &R1, const string &R2)
+    static regEx unionOp(const regEx &R1, const regEx &R2)
     {
         if (R1 == PHI)
         {
@@ -115,12 +131,89 @@ void generateInts(vector<float> &vec)
 void generateTransitions(const vector<float> &vec)
 {
     const int states[3] = {1, 4, static_cast<int>(vec[vec.size() - 1])};
-    const string transitions[3] = {EPSILON, "a", "c"};
+    const string regTransitions[3] = {EPSILON, "a", "c"};
 
     for (vector<float>::size_type i = 0; i < 3; ++i)
     {
-        cout << "Add transition " << states[i] << " ---" << transitions[i] << "---> " << static_cast<int>(vec[i]) << endl;
+        stateId from = static_cast<stateId>(states[i]);
+        stateId to = static_cast<stateId>(vec[i]);
+        if (transitions.count({from, to}))
+        {
+            cout << "Pair found " << from << " to " << to << "regex: " << transitions[{from, to}] << endl;
+            regEx updatedRegex = RegexHelper::unionOp(transitions[{from, to}], regTransitions[i]);
+            cout << "New: " << updatedRegex << endl;
+            transitions[{from, to}] = updatedRegex;
+            continue;
+        }
+        transitions[{from, to}] = regTransitions[i];
     }
+}
+
+void generateDefaultStates()
+{
+    State q2 = {2, true};
+    State q3 = {3, true};
+    State q4 = {4, true};
+    State q5 = {5};
+
+    transitions.insert({{q2.id, q4.id}, "b"});
+    transitions.insert({{q4.id, q5.id}, "a"});
+    transitions.insert({{q4.id, q3.id}, "b"});
+    transitions.insert({{q3.id, q4.id}, EPSILON});
+}
+
+regEx getRegEx(stateId fromState, stateId toState)
+{
+    if (transitions.count({fromState, toState}))
+    {
+        return transitions[{fromState, toState}];
+    }
+
+    return PHI;
+}
+
+regEx generateFinalRegEx()
+{
+    vector<int> eliminationList = {
+        2,
+        3,
+        4,
+    };
+
+    for (stateId removeState : eliminationList)
+    {
+        for (stateId inState : allStates)
+        {
+            if (inState == removeState)
+            {
+                continue;
+            }
+
+            for (stateId outState : allStates)
+            {
+                if (outState == removeState)
+                {
+                    continue;
+                }
+
+                regEx rDirect = getRegEx(inState, outState);
+                regEx rIn = getRegEx(inState, removeState);
+                regEx rLoop = getRegEx(removeState, removeState);
+                regEx rOut = getRegEx(removeState, outState);
+
+                regEx starLoop = RegexHelper::star(rLoop);
+
+                regEx rBypassPath = RegexHelper::concat(rIn, starLoop);
+
+                rBypassPath = RegexHelper::concat(rBypassPath, rOut);
+                regEx rFinal = RegexHelper::unionOp(rDirect, rBypassPath);
+
+                transitions[{inState, outState}] = rFinal;
+            }
+        }
+    }
+
+    return getRegEx(1, 5);
 }
 
 int main()
@@ -150,7 +243,17 @@ int main()
     }
     cout << endl;
 
+    // populate map with default transitions
+    generateDefaultStates();
     generateTransitions(loginNumbers);
+
+    for (const auto &transition : transitions)
+    {
+        cout << "Transition from state " << transition.first.first << " to state " << transition.first.second << " with regex: " << transition.second << endl;
+    }
+
+    regEx finalRegex = generateFinalRegEx();
+    cout << "Final Regex: " << finalRegex << endl;
 
     return 0;
 }
