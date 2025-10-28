@@ -22,59 +22,75 @@ map<pair<stateId, stateId>, regEx> transitions;
 
 set<stateId> allStates = {1, 2, 3, 4, 5};
 
-class RegexHelper {
+class RegexHelper
+{
 public:
-  static regEx concat(regEx &R1, regEx &R2) {
+  static regEx concat(regEx &R1, regEx &R2)
+  {
     // ε º ε = ε
-    if (R1 == EPSILON && R2 == EPSILON) {
+    if (R1 == EPSILON && R2 == EPSILON)
+    {
       return EPSILON;
     }
 
     // R1 º ɸ = ɸ º R1 = ɸ
-    if (R1 == PHI || R2 == PHI) {
+    if (R1 == PHI || R2 == PHI)
+    {
       return PHI;
     }
 
     // ε º R2 = R2 º ε = R2
-    if (R1 == EPSILON) {
+    if (R1 == EPSILON)
+    {
       return R2;
-    } else if (R2 == EPSILON) {
+    }
+    else if (R2 == EPSILON)
+    {
       return R1;
     }
 
     // Preserve union precedence
-    if (R1.find("∪") != string::npos) {
+    if (R1.find("∪") != string::npos)
+    {
       R1 = "(" + R1 + ")";
     }
-    if (R2.find("∪") != string::npos) {
+    if (R2.find("∪") != string::npos)
+    {
       R2 = "(" + R2 + ")";
     }
 
     return R1 + R2;
   }
 
-  static regEx star(const regEx &R) {
-    if (R == EPSILON || R == PHI) {
+  static regEx star(const regEx &R)
+  {
+    if (R == EPSILON || R == PHI)
+    {
       return EPSILON;
     }
 
     // (R*)* = R*
-    if (R.length() > 2 && R.back() == '*' && R.front() == '(') {
+    if (R.length() > 2 && R.back() == '*' && R.front() == '(')
+    {
       return R;
     }
 
     return "(" + R + ")*";
   }
 
-  static regEx unionOp(const regEx &R1, const regEx &R2) {
-    if (R1 == PHI) {
+  static regEx unionOp(const regEx &R1, const regEx &R2)
+  {
+    if (R1 == PHI)
+    {
       return R2;
     }
-    if (R2 == PHI) {
+    if (R2 == PHI)
+    {
       return R1;
     }
 
-    if (R1 == R2) {
+    if (R1 == R2)
+    {
       return R1;
     }
 
@@ -82,20 +98,23 @@ public:
   }
 };
 
-struct State {
+struct State
+{
   uint32_t id;
-  bool is_intermediate;
 };
 
-bool isValidLoginString(const string &login) {
+bool isValidLoginString(const string &login)
+{
   const regex loginPattern("^[a-z]{4}\\d{3}$");
   return regex_match(login, loginPattern);
 }
 
-vector<float> getLoginNumbers(const string &login) {
+vector<float> getLoginNumbers(const string &login)
+{
   vector<float> nums;
   for (vector<float>::size_type i = login.length() - 1; i > login.length() - 4;
-       --i) {
+       --i)
+  {
     nums.push_back(static_cast<float>(login[i] - '0'));
   }
   reverse(nums.begin(), nums.end());
@@ -106,58 +125,32 @@ vector<float> getLoginNumbers(const string &login) {
   return nums;
 }
 
-void generateInts(vector<float> &vec) {
+void generateInts(vector<float> &vec)
+{
 
   // new generation that fixes old
   float i = vec[0];
   float j = vec[1];
   float k = vec[2];
 
-  //  cout << "j is " << j << endl;
-  float x = ceil((j + 1) / 5.0) + 1;
-  // cout << "x is " << x << endl;
-
-  // cout << "k is " << k << endl;
-  float y = ceil((k + 1) / 3) + 1;
-  // cout << "y is " << y << endl;
-
-  // cout << "i is " << i << endl;
-  float z = ceil((i + 1) / 4) + 1;
-  // cout << "z is " << z << endl;
-
-  vec = {x, y, z};
-
-  cout << "x = " << x << "\ny = " << y << "\nz = " << z << endl;
-
-  // cout << "Vec0 is " << vec[0] << endl;
-  // vec[0] =
-  // ceil((vec[0] + 1) / 5) + 1; // this equation is wrong for vec0, it should
-  //// be performed on the second value (vec1)
-  // cout << "New Vec0 is " << vec[0] << endl;
-  //
-  // cout << "Vec1 is " << vec[1] << endl;
-  // vec[1] = ceil((vec[1] + 1) / 3) +
-  // 1; // same thing, it should be performed on the third value (vec2)
-  // cout << "New Vec1 is " << vec[1] << endl;
-  //
-  // cout << "Vec2 is " << vec[2] << endl;
-  // vec[2] = ceil((vec[2] + 1) / 4) + 1; // etc vec0 instead
-  // cout << "New Vec2 is " << vec[2] << endl;
+  vec[0] = ceil((j + 1) / 5.0) + 1;
+  vec[1] = ceil((k + 1) / 3) + 1;
+  vec[2] = ceil((i + 1) / 4) + 1;
 }
 
-void generateTransitions(const vector<float> &vec) {
+void generateTransitions(const vector<float> &vec)
+{
   const int states[3] = {1, 4, static_cast<int>(vec[vec.size() - 1])};
   const string regTransitions[3] = {EPSILON, "a", "c"};
 
-  for (vector<float>::size_type i = 0; i < 3; ++i) {
+  for (vector<float>::size_type i = 0; i < 3; ++i)
+  {
     stateId from = static_cast<stateId>(states[i]);
     stateId to = static_cast<stateId>(vec[i]);
-    if (transitions.count({from, to})) {
-      cout << "Pair found " << from << " to " << to
-           << "regex: " << transitions[{from, to}] << endl;
-      regEx updatedRegex =
-          RegexHelper::unionOp(transitions[{from, to}], regTransitions[i]);
-      cout << "New: " << updatedRegex << endl;
+    if (transitions.count({from, to}))
+    {
+
+      regEx updatedRegex = RegexHelper::unionOp(transitions[{from, to}], regTransitions[i]);
       transitions[{from, to}] = updatedRegex;
       continue;
     }
@@ -165,10 +158,11 @@ void generateTransitions(const vector<float> &vec) {
   }
 }
 
-void generateDefaultStates() {
-  State q2 = {2, true};
-  State q3 = {3, true};
-  State q4 = {4, true};
+void generateDefaultStates()
+{
+  State q2 = {2};
+  State q3 = {3};
+  State q4 = {4};
   State q5 = {5};
 
   transitions.insert({{q2.id, q4.id}, "b"});
@@ -177,29 +171,37 @@ void generateDefaultStates() {
   transitions.insert({{q3.id, q4.id}, EPSILON});
 }
 
-regEx getRegEx(stateId fromState, stateId toState) {
-  if (transitions.count({fromState, toState})) {
+regEx getRegEx(stateId fromState, stateId toState)
+{
+  if (transitions.count({fromState, toState}))
+  {
     return transitions[{fromState, toState}];
   }
 
   return PHI;
 }
 
-regEx generateFinalRegEx() {
+regEx generateFinalRegEx()
+{
   vector<int> eliminationList = {
       2,
       3,
       4,
   };
 
-  for (stateId removeState : eliminationList) {
-    for (stateId inState : allStates) {
-      if (inState == removeState) {
+  for (stateId removeState : eliminationList)
+  {
+    for (stateId inState : allStates)
+    {
+      if (inState == removeState)
+      {
         continue;
       }
 
-      for (stateId outState : allStates) {
-        if (outState == removeState) {
+      for (stateId outState : allStates)
+      {
+        if (outState == removeState)
+        {
           continue;
         }
 
@@ -223,7 +225,8 @@ regEx generateFinalRegEx() {
   return getRegEx(1, 5);
 }
 
-int main() {
+int main()
+{
   using namespace std;
   string itLogin;
 
@@ -232,7 +235,8 @@ int main() {
 
   const bool validLogin = isValidLoginString(itLogin);
 
-  if (!validLogin) {
+  if (!validLogin)
+  {
     cout << "Invalid login, double check your input";
     return 0;
   }
@@ -242,7 +246,8 @@ int main() {
   generateInts(loginNumbers);
 
   cout << "Generated numbers: ";
-  for (const auto &num : loginNumbers) {
+  for (const auto &num : loginNumbers)
+  {
     cout << num << " ";
   }
   cout << endl;
@@ -251,7 +256,8 @@ int main() {
   generateDefaultStates();
   generateTransitions(loginNumbers);
 
-  for (const auto &transition : transitions) {
+  for (const auto &transition : transitions)
+  {
     cout << "Transition from state " << transition.first.first << " to state "
          << transition.first.second << " with regex: " << transition.second
          << endl;
